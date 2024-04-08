@@ -5,6 +5,8 @@ from datetime import datetime
 
 def scrape_table(url):
     response = requests.get(url)
+    if response.status_code != 200:
+        return None
     soup = BeautifulSoup(response.text, 'html.parser')
 
     # Find the table on the webpage
@@ -35,7 +37,7 @@ def get_last_scraped_year():
         with open('last_scraped_year.txt', 'r') as file:
             return int(file.read().strip())
     except FileNotFoundError:
-        return 2003
+        return datetime.now().year
 
 def set_last_scraped_year(year):
     with open('last_scraped_year.txt', 'w') as file:
@@ -47,15 +49,24 @@ current_year = datetime.now().year
 # Get the last scraped year
 last_scraped_year = get_last_scraped_year()
 
-# Iterate through the years from the last scraped year to the current year
-for year in range(last_scraped_year + 1, current_year + 1):
+# Start from the last scraped year and go backwards
+year = last_scraped_year
+
+while True:
     url = f"https://www.tirage-euromillions.net/euromillions/annees/annee-{year}/"
     data = scrape_table(url)
+    
+    # If data is None, it means the page for the year does not exist
+    if data is None:
+        break
 
     # Write the data to a CSV file
     write_to_csv(data, 'table_data.csv')
 
-    # Update the last scraped year
-    set_last_scraped_year(year)
+    # Update the last scraped year and don't take it again
+    set_last_scraped_year(year-1)
+
+    # Move to the previous year
+    year -= 1
 
 print("Data has been written to 'table_data.csv'")
